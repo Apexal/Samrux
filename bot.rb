@@ -18,7 +18,7 @@ IDS.default = []
 
 CHANNEL_ID = 305721854939758592
 
-BOT = Discordrb::Bot.new token: ARGV.first, client_id: ARGV[1]
+BOT = Discordrb::Commands::CommandBot.new token: ARGV.first, client_id: ARGV[1], prefix: '!', advanced_functionality: true
 
 BOT.ready { |event| BOT.servers.each { |_, server| setup_server(server) }; save }
 
@@ -37,6 +37,10 @@ end
 
 def setup_server(server)
   return if server.id == 303952447712395264
+
+  BOT.set_user_permission(152621041976344577, 2)
+  BOT.set_user_permission(228656614851346432, 2)
+
   puts "Setting up [#{server.name}]"
   channel = server.text_channels.find { |tc| tc.name == 'sorteo_1000' }
 
@@ -44,7 +48,7 @@ def setup_server(server)
   start_id = 305750110753783808
   target_id = channel.history(1).first.id # 305558605246234624
 
-  IDS[server.id] = history(channel, 1, start_id, [], target_id).map { |m| m.author.id }
+  #IDS[server.id] = history(channel, 1, start_id, [], target_id).map { |m| m.author.id }
 
   IDS[server.id].uniq!
 
@@ -68,6 +72,19 @@ BOT.pm(from: [152621041976344577, 228656614851346432], content: 'winner') do |ev
   random = server.member(ids.sample)
   event.user.pm "**CHOICE:** #{random.display_name} (#{random.mention})\n*User since:* #{random.joined_at}"
   puts 'Selection: ' + random.mention
+end
+
+BOT.command(:r, min_args: 2, max_args: 2, description: 'Have the bot say something in a text-channel.', usage: '!say "channel_name" "message"', permission_level: 2) do |event, channel_name, message|
+  puts "In command"
+  server = event.bot.server(232329466825670657)
+  channel = server.text_channels.find { |tc| tc.name == channel_name }
+
+  return event.user.pm 'Invalid channel name!' if channel.nil?
+
+  channel.send_message(message)
+
+  puts "Sent message: #{message} to ##{channel_name}"
+  nil
 end
 
 def save
